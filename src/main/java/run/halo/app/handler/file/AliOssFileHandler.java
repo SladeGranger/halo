@@ -6,6 +6,8 @@ import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.DeleteObjectsRequest;
 import com.aliyun.oss.model.PutObjectResult;
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -82,6 +84,9 @@ public class AliOssFileHandler implements FileHandler {
                 .append(URL_SEPARATOR);
         }
 
+        //Get image without EXIF information
+        File withoutEXIF = removeEXIF(file);
+
         try {
             FilePathDescriptor uploadFilePath = new FilePathDescriptor.Builder()
                 .setBasePath(basePath.toString())
@@ -96,12 +101,20 @@ public class AliOssFileHandler implements FileHandler {
             log.info(basePath.toString());
 
             // Upload
-            final PutObjectResult putObjectResult = ossClient.putObject(bucketName,
-                uploadFilePath.getRelativePath(),
-                file.getInputStream());
-
+            final PutObjectResult putObjectResult;
+            if (withoutEXIF != null) {
+                putObjectResult = ossClient.putObject(bucketName,
+                    uploadFilePath.getRelativePath(),
+                    new FileInputStream(withoutEXIF));
+                withoutEXIF.delete();
+            } else {
+                putObjectResult = ossClient.putObject(bucketName,
+                    uploadFilePath.getRelativePath(),
+                    file.getInputStream());
+            }
             if (putObjectResult == null) {
-                throw new FileOperationException("上传附件 " + file.getOriginalFilename() + " 到阿里云失败 ");
+                throw new FileOperationException(
+                    "上传附件 " + file.getOriginalFilename() + " 到阿里云失败 ");
             }
 
             // Response result
