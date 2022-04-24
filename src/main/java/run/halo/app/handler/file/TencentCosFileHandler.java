@@ -20,6 +20,7 @@ import org.springframework.util.Assert;
 import org.springframework.web.multipart.MultipartFile;
 import run.halo.app.exception.FileOperationException;
 import run.halo.app.model.enums.AttachmentType;
+import run.halo.app.model.properties.AttachmentProperties;
 import run.halo.app.model.properties.TencentCosProperties;
 import run.halo.app.model.support.UploadResult;
 import run.halo.app.repository.AttachmentRepository;
@@ -51,10 +52,12 @@ public class TencentCosFileHandler implements FileHandler {
         Assert.notNull(file, "Multipart file must not be null");
 
         // Get config
+        boolean ifRemoveEXIF = (boolean) optionService
+            .getByPropertyOfNonNull(AttachmentProperties.IMAGE_EXIF_REMOVE_ENABLE);
         String protocol =
             optionService.getByPropertyOfNonNull(TencentCosProperties.COS_PROTOCOL).toString();
         String domain =
-            optionService.getByPropertyOrDefault(TencentCosProperties.COS_DOMAIN, String.class, "");
+            optionService.getByPropertyOrDefault(TencentCosProperties.COS_DOMAIN, String.class, "").trim();
         String region =
             optionService.getByPropertyOfNonNull(TencentCosProperties.COS_REGION).toString();
         String secretId =
@@ -62,14 +65,14 @@ public class TencentCosFileHandler implements FileHandler {
         String secretKey =
             optionService.getByPropertyOfNonNull(TencentCosProperties.COS_SECRET_KEY).toString();
         String bucketName =
-            optionService.getByPropertyOfNonNull(TencentCosProperties.COS_BUCKET_NAME).toString();
+            optionService.getByPropertyOfNonNull(TencentCosProperties.COS_BUCKET_NAME).toString().trim();
         String source =
-            optionService.getByPropertyOrDefault(TencentCosProperties.COS_SOURCE, String.class, "");
+            optionService.getByPropertyOrDefault(TencentCosProperties.COS_SOURCE, String.class, "").trim();
         String styleRule = optionService
-            .getByPropertyOrDefault(TencentCosProperties.COS_STYLE_RULE, String.class, "");
+            .getByPropertyOrDefault(TencentCosProperties.COS_STYLE_RULE, String.class, "").trim();
         String thumbnailStyleRule = optionService
             .getByPropertyOrDefault(TencentCosProperties.COS_THUMBNAIL_STYLE_RULE, String.class,
-                "");
+                "").trim();
 
         COSCredentials cred = new BasicCOSCredentials(secretId, secretKey);
         Region regionConfig = new Region(region);
@@ -92,7 +95,10 @@ public class TencentCosFileHandler implements FileHandler {
         }
 
         //Get image without EXIF information
-        File withoutEXIF = removeEXIF(file);
+        File withoutEXIF = null;
+        if (ifRemoveEXIF) {
+            withoutEXIF = removeEXIF(file);
+        }
 
         try {
             FilePathDescriptor pathDescriptor = new FilePathDescriptor.Builder()
@@ -168,7 +174,7 @@ public class TencentCosFileHandler implements FileHandler {
         String secretKey =
             optionService.getByPropertyOfNonNull(TencentCosProperties.COS_SECRET_KEY).toString();
         String bucketName =
-            optionService.getByPropertyOfNonNull(TencentCosProperties.COS_BUCKET_NAME).toString();
+            optionService.getByPropertyOfNonNull(TencentCosProperties.COS_BUCKET_NAME).toString().trim();
 
         COSCredentials cred = new BasicCOSCredentials(secretId, secretKey);
         Region regionConfig = new Region(region);
