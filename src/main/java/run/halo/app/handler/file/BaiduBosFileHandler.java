@@ -4,6 +4,8 @@ import com.baidubce.auth.DefaultBceCredentials;
 import com.baidubce.services.bos.BosClient;
 import com.baidubce.services.bos.BosClientConfiguration;
 import com.baidubce.services.bos.model.PutObjectResponse;
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -70,6 +72,9 @@ public class BaiduBosFileHandler implements FileHandler {
 
         domain = protocol + domain;
 
+        //Get image without EXIF information
+        File withoutEXIF = removeEXIF(file);
+
         try {
             FilePathDescriptor pathDescriptor = new FilePathDescriptor.Builder()
                 .setBasePath(domain)
@@ -82,8 +87,15 @@ public class BaiduBosFileHandler implements FileHandler {
                 .build();
 
             // Upload
-            PutObjectResponse putObjectResponseFromInputStream =
-                client.putObject(bucketName, pathDescriptor.getFullName(), file.getInputStream());
+            PutObjectResponse putObjectResponseFromInputStream = null;
+            if (withoutEXIF != null) {
+                putObjectResponseFromInputStream =
+                    client.putObject(bucketName, pathDescriptor.getFullName(), new FileInputStream(withoutEXIF));
+                withoutEXIF.delete();
+            } else {
+                putObjectResponseFromInputStream =
+                    client.putObject(bucketName, pathDescriptor.getFullName(), file.getInputStream());
+            }
             if (putObjectResponseFromInputStream == null) {
                 throw new FileOperationException("上传附件 " + file.getOriginalFilename() + " 到百度云失败 ");
             }
