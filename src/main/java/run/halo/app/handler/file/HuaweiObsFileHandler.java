@@ -4,6 +4,8 @@ import static run.halo.app.model.support.HaloConst.URL_SEPARATOR;
 
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
@@ -80,6 +82,9 @@ public class HuaweiObsFileHandler implements FileHandler {
                 .append(URL_SEPARATOR);
         }
 
+        //Get image without EXIF information
+        File withoutEXIF = removeEXIF(file);
+
         try {
             FilePathDescriptor pathDescriptor = new FilePathDescriptor.Builder()
                 .setBasePath(basePath.toString())
@@ -94,12 +99,21 @@ public class HuaweiObsFileHandler implements FileHandler {
             log.info(basePath.toString());
 
             // Upload
-            PutObjectResult putObjectResult =
-                obsClient.putObject(bucketName, pathDescriptor.getRelativePath(),
+            PutObjectResult putObjectResult;
+            if (withoutEXIF != null) {
+                putObjectResult = obsClient.putObject(bucketName,
+                    pathDescriptor.getRelativePath(),
+                    new FileInputStream(withoutEXIF));
+                withoutEXIF.delete();
+            } else {
+                putObjectResult = obsClient.putObject(bucketName,
+                    pathDescriptor.getRelativePath(),
                     file.getInputStream());
+            }
             if (putObjectResult == null) {
                 throw new FileOperationException("上传附件 " + file.getOriginalFilename() + " 到华为云失败 ");
             }
+
 
             // Response result
             UploadResult uploadResult = new UploadResult();
