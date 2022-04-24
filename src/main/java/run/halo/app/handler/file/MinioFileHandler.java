@@ -15,6 +15,7 @@ import org.springframework.util.Assert;
 import org.springframework.web.multipart.MultipartFile;
 import run.halo.app.exception.FileOperationException;
 import run.halo.app.model.enums.AttachmentType;
+import run.halo.app.model.properties.AttachmentProperties;
 import run.halo.app.model.properties.MinioProperties;
 import run.halo.app.model.support.HaloConst;
 import run.halo.app.model.support.UploadResult;
@@ -46,15 +47,17 @@ public class MinioFileHandler implements FileHandler {
     public UploadResult upload(@NonNull MultipartFile file) {
         Assert.notNull(file, "Multipart file must not be null");
         // Get config
-        String endpoint = optionService.getByPropertyOfNonNull(MinioProperties.ENDPOINT).toString();
+        boolean ifRemoveEXIF = (boolean) optionService
+            .getByPropertyOfNonNull(AttachmentProperties.IMAGE_EXIF_REMOVE_ENABLE);
+        String endpoint = optionService.getByPropertyOfNonNull(MinioProperties.ENDPOINT).toString().trim();
         String accessKey =
             optionService.getByPropertyOfNonNull(MinioProperties.ACCESS_KEY).toString();
         String accessSecret =
             optionService.getByPropertyOfNonNull(MinioProperties.ACCESS_SECRET).toString();
         String bucketName =
-            optionService.getByPropertyOfNonNull(MinioProperties.BUCKET_NAME).toString();
+            optionService.getByPropertyOfNonNull(MinioProperties.BUCKET_NAME).toString().trim();
         String source =
-            optionService.getByPropertyOrDefault(MinioProperties.SOURCE, String.class, "");
+            optionService.getByPropertyOrDefault(MinioProperties.SOURCE, String.class, "").trim();
         String region =
             optionService.getByPropertyOrDefault(MinioProperties.REGION, String.class, "us-east-1");
 
@@ -67,7 +70,10 @@ public class MinioFileHandler implements FileHandler {
             .build();
 
         //Get image without EXIF information
-        File withoutEXIF = removeEXIF(file);
+        File withoutEXIF = null;
+        if (ifRemoveEXIF) {
+            withoutEXIF = removeEXIF(file);
+        }
 
         try {
             FilePathDescriptor pathDescriptor = new FilePathDescriptor.Builder()
@@ -134,7 +140,7 @@ public class MinioFileHandler implements FileHandler {
         String accessSecret =
             optionService.getByPropertyOfNonNull(MinioProperties.ACCESS_SECRET).toString();
         String bucketName =
-            optionService.getByPropertyOfNonNull(MinioProperties.BUCKET_NAME).toString();
+            optionService.getByPropertyOfNonNull(MinioProperties.BUCKET_NAME).toString().trim();
         String region =
             optionService.getByPropertyOrDefault(MinioProperties.REGION, String.class, "us-east-1");
 
